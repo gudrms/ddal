@@ -1,4 +1,4 @@
-import { gemini } from '@/lib/openai'
+import { openai } from '@/lib/openai'
 import { buildSystemPrompt } from '@/lib/prompts'
 import { NextRequest } from 'next/server'
 
@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = buildSystemPrompt(turnCount ?? 1)
 
-  const stream = await gemini.chat.completions.create({
-    model: 'gemini-2.5-flash',
+  const stream = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
     stream: true,
     messages: [
       { role: 'system', content: systemPrompt },
