@@ -84,11 +84,15 @@ export default function Home() {
             const { delta } = JSON.parse(data);
             bufferRef.current += delta;
 
-            const ttsIdx = bufferRef.current.indexOf("TTS_SUMMARY:");
+            const TTS_START = "---TTS_START---";
+            const TTS_END = "---TTS_END---";
+            const startIdx = bufferRef.current.indexOf(TTS_START);
+            const endIdx = bufferRef.current.indexOf(TTS_END);
+
             const displayText =
-              ttsIdx === -1
+              startIdx === -1
                 ? bufferRef.current
-                : bufferRef.current.slice(0, ttsIdx).trimEnd();
+                : bufferRef.current.slice(0, startIdx).trimEnd();
 
             setMessages((prev) => {
               const updated = [...prev];
@@ -98,16 +102,16 @@ export default function Home() {
               return updated;
             });
 
-            // Parallel TTS trigger
-            if (!ttsFiredRef.current && ttsIdx !== -1) {
-              const summaryLines = bufferRef.current
-                .slice(ttsIdx + "TTS_SUMMARY:".length)
+            // TTS_END 감지 시에만 발동 → 3줄이 완전히 완성된 후
+            if (!ttsFiredRef.current && endIdx !== -1) {
+              const summaryBlock = bufferRef.current
+                .slice(startIdx + TTS_START.length, endIdx)
                 .split("\n")
                 .map((l) => l.trim())
                 .filter(Boolean);
-              if (summaryLines.length >= 3) {
+              if (summaryBlock.length >= 3) {
                 ttsFiredRef.current = true;
-                fetchTTS(summaryLines.slice(0, 3).join("\n"), botMsgIndex);
+                fetchTTS(summaryBlock.slice(0, 3).join("\n"), botMsgIndex);
               }
             }
           } catch {
