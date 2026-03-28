@@ -25,9 +25,16 @@ export default function Home() {
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const audioRefs = useRef<Record<number, HTMLAudioElement>>({});
   const bufferRef = useRef("");
   const ttsFiredRef = useRef(false);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      inputRef.current?.focus();
+    }
+  }, [isStreaming]);
 
   useEffect(() => {
     const saved = Number(localStorage.getItem("turnCount") ?? "0");
@@ -50,6 +57,22 @@ export default function Home() {
 
     const userMsgIndex = messages.length;
     const botMsgIndex = messages.length + 1;
+
+    if (nextTurn >= 7) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", text: userMessage },
+        { role: "bot", text: "알아서 찾아서 쳐먹어" },
+      ]);
+      
+      setTimeout(() => {
+        // 브라우저 탭 닫기 시도
+        window.close();
+        // window.close()가 보안상 막힐 경우를 대비해 화면 전체를 검은색으로 덮기
+        document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:black; color:white; font-size:2rem; font-weight:bold;'>알아서 찾아서 쳐먹어.</div>";
+      }, 2000); // 사용자가 메시지를 볼 수 있게 2초 뒤 종료
+      return;
+    }
 
     setMessages((prev) => [
       ...prev,
@@ -102,16 +125,16 @@ export default function Home() {
               return updated;
             });
 
-            // TTS_END 감지 시에만 발동 → 3줄이 완전히 완성된 후
+            // TTS_END 감지 시에만 발동 → 요약본이 끝난 후
             if (!ttsFiredRef.current && endIdx !== -1) {
               const summaryBlock = bufferRef.current
                 .slice(startIdx + TTS_START.length, endIdx)
                 .split("\n")
                 .map((l) => l.trim())
                 .filter(Boolean);
-              if (summaryBlock.length >= 3) {
+              if (summaryBlock.length > 0) {
                 ttsFiredRef.current = true;
-                fetchTTS(summaryBlock.slice(0, 3).join("\n"), botMsgIndex);
+                fetchTTS(summaryBlock.slice(0, 3).join(" "), botMsgIndex);
               }
             }
           } catch {
@@ -185,10 +208,10 @@ export default function Home() {
           </div>
           <div>
             <h1 className="text-base font-extrabold tracking-tight text-[#2d2f2f] leading-none">
-              거짓말쟁이 메뉴봇
+              메뉴 추천봇
             </h1>
             <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">
-              진실 속의 거짓말
+              환상의 메뉴(진짜 환상)
             </p>
           </div>
         </div>
@@ -262,11 +285,10 @@ export default function Home() {
 
             <div className={`flex flex-col gap-1.5 ${msg.role === "user" ? "items-end" : "items-start"} max-w-[80%]`}>
               <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                  msg.role === "user"
-                    ? "bg-primary text-on-primary rounded-br-sm"
-                    : "bg-surface-container-lowest border border-outline-variant/20 text-on-surface rounded-bl-sm shadow-sm"
-                }`}
+                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user"
+                  ? "bg-primary text-on-primary rounded-br-sm"
+                  : "bg-surface-container-lowest border border-outline-variant/20 text-on-surface rounded-bl-sm shadow-sm"
+                  }`}
               >
                 {msg.text || (
                   <span className="flex items-center gap-1 py-0.5">
@@ -317,6 +339,7 @@ export default function Home() {
       <footer className="flex-shrink-0 px-4 py-4 bg-[#f6f6f6]/90 backdrop-blur-xl border-t border-outline-variant/20">
         <form onSubmit={handleSubmit} className="flex items-center gap-3">
           <input
+            ref={inputRef}
             className="flex-1 bg-surface-container-highest rounded-2xl px-4 py-3 text-sm text-on-surface placeholder-on-surface-variant/60 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
             placeholder="뭐 먹고 싶어? (일식, 삼겹살...)"
             value={input}
